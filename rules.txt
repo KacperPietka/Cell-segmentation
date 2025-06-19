@@ -1,0 +1,17 @@
+The 2024/2025 challenge is to jointly build an interactive Cell Segmentation toolkit (no robots will be used for this year's challenge).
+
+As a team you develop a toolkit for biologists that enables them to talk to their image analysis software, interactively, allowing to perform simple and complex operations such as zooming, labelling, and comparing images, with a focus on cell segmentation in an interactive manner.
+
+You may use existing machine learning models (possibly finetune, but no training from scratch)
+
+You may use exitsing rule-based image processing techniques.
+
+You may use LLM APIs to do the language interpretation.
+
+You may use existing TTS and STT models and APIs.
+
+You need to develop the interactive parts, and make sure it works smoothly for the primary users (Cell biologists), including interactive (re)labeling, segmentation and supportive functions.
+
+The interface is entirely conversation based through voice (so voice (human) to voice (computer)).
+
+The first two months, you start with a proof of concept prototype that will do simple voice-to-voice interactive image operations such as zooming, highlighting, (re)coloring, contrasting, and lighting image processing.
