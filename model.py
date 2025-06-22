@@ -121,6 +121,7 @@ class Model:
         zooming_threshold = self.zoom_factor*1.5
 
         x0,y0,w0,h0 = self.current_zoom
+
         while self.zoom_factor < zooming_threshold:
             self.zoom_factor += 0.05
             h, w = self.image.shape[:2]
@@ -150,49 +151,39 @@ class Model:
             cropped = self.image[y1:y2, x1:x2]
             zoomed_image = cv.resize(cropped, (w, h), interpolation=cv.INTER_LINEAR)
             cv.imshow("Display window", zoomed_image)
-            if cv.waitKey(30) & 0xFF == 27:
-                break
+            cv.waitKey(30)
         self.current_zoom = (x1, y1, x2 - x1, y2 - y1)
 
 
     def zoom_out(self):
-        while True:
-            if self.zoom_factor <= 1:
-                break
+        x0,y0,w0,h0 = self.current_zoom
+        h, w = self.image.shape[:2]
+        
+        self.zoom_factor = w / w0
+        center_x = x0 + w0 // 2 #current center x
+        center_y = y0 + h0 // 2 #current center y
+
+        while self.zoom_factor > 1:
             self.zoom_factor -= 0.05
-
-            h, w = self.image.shape[:2]
-
+            if self.zoom_factor < 1:
+                self.zoom_factor = 1
             new_w = int(w / self.zoom_factor)
             new_h = int(h / self.zoom_factor)
 
-            if self.zoom_position == 'center':
-                x1 = (w - new_w) // 2
-                y1 = (h - new_h) // 2
-            elif self.zoom_position == 'top_left':
-                x1 = 0
-                y1 = 0
-            elif self.zoom_position == 'top_right':
-                x1 = w - new_w
-                y1 = 0
-            elif self.zoom_position == 'bottom_left':
-                x1 = 0
-                y1 = h - new_h
-            elif self.zoom_position == 'bottom_right':
-                x1 = w - new_w
-                y1 = h - new_h
-            else:
-                x1 = (w - new_w) // 2
-                y1 = (h - new_h) // 2
+            x1 = center_x - new_w // 2
+            y1 = center_y - new_h // 2
 
+            x1 = max(0, min(w - new_w, x1))
+            y1 = max(0, min(h - new_h, y1))
             x2 = x1 + new_w
             y2 = y1 + new_h
 
             cropped = self.image[y1:y2, x1:x2]
             zoomed_image = cv.resize(cropped, (w, h), interpolation=cv.INTER_LINEAR)
             cv.imshow("Display window", zoomed_image)
-            if cv.waitKey(30) & 0xFF == 27:
-                break
+            cv.waitKey(30)
+        self.current_zoom = (x1, y1, x2 - x1, y2 - y1)
+
 
 model = Model()
 
@@ -200,8 +191,6 @@ cv.imshow("Display window", model.image)
 cv.waitKey(1)
 
 while True:
-    if cv.waitKey(30) != -1:
-        break
     with sr.Microphone() as source:
         print("You can talk now") 
         audio_data = model.speech.listen(source)
@@ -211,5 +200,6 @@ while True:
             print("Sorry, I could not understand your voice.")
         except sr.RequestError as e:
             print(f"Speech recognition error: {e}") 
-
+    if cv.waitKey(1) & 0xFF == 27:
+        break
 cv.destroyAllWindows()
