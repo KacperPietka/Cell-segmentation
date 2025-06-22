@@ -1,7 +1,6 @@
 import requests
 import json
 import speech_recognition as sr
-import pyttsx3
 from gtts import gTTS
 import playsound
 import os
@@ -68,12 +67,14 @@ class Model:
 
 
     def process_speech_input(self, audio_data):
-
+        self.user_input = ""
+        self.response_text = ""
         self.user_input = self.speech.recognize_google(audio_data)
         self.payload['messages'][1]['content'] = self.user_input #update user input
         print("You said:", self.user_input)
 
         response = requests.post(self.url, json=self.payload, stream=True)
+
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line:
@@ -113,18 +114,21 @@ class Model:
                     break
 
 model = Model()
+
 cv.imshow("Display window", model.image)
 cv.waitKey(1)
 
-with sr.Microphone() as source:
-    print("You can talk now") 
-    audio_data = model.speech.listen(source)
-    try:
-        model.process_speech_input(audio_data)
-    except sr.UnknownValueError:
-        print("Sorry, I could not understand your voice.")
-    except sr.RequestError as e:
-        print(f"Speech recognition error: {e}")
+while True:
+    if cv.waitKey(30) != -1:
+        break
+    with sr.Microphone() as source:
+        print("You can talk now") 
+        audio_data = model.speech.listen(source)
+        try:
+            model.process_speech_input(audio_data)
+        except sr.UnknownValueError:
+            print("Sorry, I could not understand your voice.")
+        except sr.RequestError as e:
+            print(f"Speech recognition error: {e}") 
 
-k = cv.waitKey(0)
 cv.destroyAllWindows()
