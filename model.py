@@ -20,6 +20,7 @@ class Model:
         self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
         self.zoom_factor = 1
         self.command = None
+        self.move_position = None
         self.zoom_position = 'center'
         self.user_input = ""
         self.payload = {
@@ -34,6 +35,7 @@ class Model:
             Available commands:
             - zoom_in: Zoom in the current view.
             - zoom_out: Zoom out the current view.
+            - move: move current zoom
             - none: Do nothing or no known command recognized.
 
             Available zoom positions:
@@ -43,9 +45,15 @@ class Model:
             - bottom left
             - bottom right
 
+            Available move positions:
+            - up 
+            - down
+            - left
+            - right
+
             Output format MUST be exactly:
             [Response to user text]
-            [command_name] [position (optional, no extra spaces)]
+            [command_name] [position (optional)]
 
             User: "please zoom in top left"
             Okay! Zooming in top left.
@@ -54,6 +62,10 @@ class Model:
             User: "please zoom out"
             Okay! Zooming out.
             zoom_out
+
+            User: "please move to the left"
+            Okay! moving the zoom to the left.
+            move left
 
             User: "how's the weather?"
             Sorry, I can only help with software commands.
@@ -72,7 +84,8 @@ class Model:
         }
         self.command_dispatch = {
             "zoom_in": self.zoom_in,
-            "zoom_out": self.zoom_out
+            "zoom_out": self.zoom_out,
+            "move": self.move
         }
 
     def speak(self, text, lang='en', tld='com'):
@@ -107,8 +120,12 @@ class Model:
             self.speak(lines[0], lang='en', tld='co.uk')
             if lines:
                 parts = lines[-1].strip().split()
+                #print(parts)
                 if len(parts) == 2:
-                    self.command, self.zoom_position = parts[0], parts[1]
+                    if parts[1] in ['top_right', 'top_left', 'bottom_left', 'bottom_right']:
+                        self.command, self.zoom_position = parts[0], parts[1]
+                    elif parts[1] in ['up', 'down', 'left', 'right']:
+                        self.command, self.move_position = parts[0], parts[1]
                 else:
                     self.command = parts[0]
             if self.command in self.command_dispatch:
@@ -184,6 +201,36 @@ class Model:
             cv.waitKey(30)
         self.current_zoom = (x1, y1, x2 - x1, y2 - y1)
 
+    def move(self):
+        h, w = self.image.shape[:2]
+        x0,y0,w0,h0 = self.current_zoom
+
+        if self.zoom_factor == 1: #cannot move the already zoomed out image
+            return
+
+        if self.move_position == 'top':
+            x1 = x0
+            y1 = y0 - h0
+        elif self.move_position == 'down':
+            x1 = x0
+            y1 = y0 + h0
+        elif self.move_position == 'left':
+            x1 = x0 - w0
+            y1 = y0
+        elif self.move_position == 'right':
+            x1 = x0 + w0 
+            y1 = y0
+
+        x1 = max(0, min(x1, w - w0))
+        y1 = max(0, min(y1, h - h0))
+        x2 = x1 + w0
+        y2 = y1 + h0
+
+        cropped = self.image[y1:y2, x1:x2]
+        moved_image = cv.resize(cropped, (w, h), interpolation=cv.INTER_LINEAR)
+        cv.imshow("Display window", moved_image)
+        cv.waitKey(30)
+        self.current_zoom = (x1, y1, w0, h0)
 
 model = Model()
 
