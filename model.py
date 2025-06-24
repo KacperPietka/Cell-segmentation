@@ -7,36 +7,40 @@ import os
 import tempfile
 import cv2 as cv
 import numpy as np
-
-
-
+from cellpose import models
+from cellpose.io import imread
 
 
 class Model:
-    def __init__(self):
+    def __init__(self, image_path):
         self.url = 'http://localhost:11434/api/chat'
-        self.image = cv.imread("cell.jpg")
+        img = cv.imread(image_path)
+        self.image = cv.resize(img, (1200, 1000))
+        self.original_image = self.image.copy()
         self.speech = sr.Recognizer()
         self.response_text = ""
         self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
         self.zoom_factor = 1
         self.command = None
+        self.color = [0, 0, 255]
         self.move_position = None
         self.zoom_position = 'center'
         self.user_input = ""
+        self.end = False
         self.payload = {
-            'model': 'llama3.2',
+            'model': 'mistral',
             'messages': [
         {
             "role": "system",
-            "content": """You are a voice assistant in a cell segmentation software When someone says commands like "zoom in" or "color every cell in red", respond naturally in the first lines like OKAY!, zooming in. If someone says zoom out you say sure! zooming out. etc.
+            "content": """You are a voice assistant in a cell segmentation software When someone says commands respond naturally in the first lines like OKAY!, zooming in. If someone says zoom out you say sure! zooming out. etc.
             Then, on the LAST line of your output, output ONLY the command name and optionally the zoom position.
 
 
             Available commands:
             - zoom_in: Zoom in the current view.
             - zoom_out: Zoom out the current view.
-            - move: move current zoom
+            - cell_segmentation: Color every cell.
+            - quit: Close everything and say goodbye.
             - none: Do nothing or no known command recognized.
 
             Available zoom positions:
@@ -46,36 +50,49 @@ class Model:
             - bottom left
             - bottom right
 
-            Available move positions:
-            - up 
-            - down
-            - left
-            - right
+            Color Name to BGR:
+            red: 0 0 255
+            green: 0 255 0
+            blue: 255 0 0
+            yellow: 0 255 255
+            white: 255 255 255
+            black: 0 0 0
 
             Output format MUST be exactly:
             [Response to user text]
-            [command_name] [position (optional)]
-
+            [command_name] [position (optional) OR color (optional)]
+            
             User: "please zoom in top left"
-            Okay! Zooming in top left.
+            Response: Okay! Zooming in top left.
             zoom_in top_left
 
+            User: "please zoom in the middle"
+            Response: Okay! Zooming in the center.
+            zoom_in center
+
+            User: "Color every cell in blue"
+            Response: Coloring cell segmentation in blue...
+            cell_segmentation 255 0 0
+
+            User: "Recolor every cell in red"
+            Response: recoloring cell segmentation in red...
+            cell_segmentation 0 0 255
+            
             User: "please zoom out"
-            Okay! Zooming out.
+            Response: Okay! Zooming out.
             zoom_out
 
-            User: "please move to the left"
-            Okay! moving the zoom to the left.
-            move left
-
             User: "how's the weather?"
-            Sorry, I can only help with software commands.
+            Response: Sorry, I can only help with software commands.
             none
 
+            User: "stop"
+            Response: Thank you for using our software! Have a nice day.
+            quit
+
             IMPORTANT:  
-            - The LAST line must contain ONLY the command and optional position, nothing else.  
-            - Do NOT output any extra blank lines or trailing spaces after the command line.
-            - If no position is given or needed, output only the command."""
+            - The LAST line must contain ONLY the command and optional position or optional color, nothing else.  
+            - Do NOT output any extra blank lines or trailing spaces after the command line."""
         },
         {
             "role": "user",
@@ -86,7 +103,8 @@ class Model:
         self.command_dispatch = {
             "zoom_in": self.zoom_in,
             "zoom_out": self.zoom_out,
-            "move": self.move
+            "cell_segmentation": self.cell_segmentation,
+            "quit": self.quit
         }
 
     def speak(self, text, lang='en', tld='com'):
@@ -121,12 +139,14 @@ class Model:
             self.speak(lines[0], lang='en', tld='co.uk')
             if lines:
                 parts = lines[-1].strip().split()
-                #print(parts)
+                print(parts)
                 if len(parts) == 2:
-                    if parts[1] in ['top_right', 'top_left', 'bottom_left', 'bottom_right']:
+                    if parts[1] in ['top_right', 'top_left', 'bottom_left', 'bottom_right', 'center']:
                         self.command, self.zoom_position = parts[0], parts[1]
-                    elif parts[1] in ['up', 'down', 'left', 'right']:
-                        self.command, self.move_position = parts[0], parts[1]
+                    #elif parts[1] in ['up', 'down', 'left', 'right']:
+                        #self.command, self.move_position = parts[0], parts[1]
+                elif len(parts) == 4: #colors
+                    self.command, self.color = parts[0], parts[1:]
                 else:
                     self.command = parts[0]
             if self.command in self.command_dispatch:
@@ -139,14 +159,12 @@ class Model:
         zooming_threshold = self.zoom_factor*1.5
 
         x0,y0,w0,h0 = self.current_zoom
-
         while self.zoom_factor < zooming_threshold:
             self.zoom_factor += 0.05
             h, w = self.image.shape[:2]
 
             new_w = int(w0 / self.zoom_factor)
             new_h = int(h0 / self.zoom_factor)
-
 
             if self.zoom_position == 'center':
                 x1 = x0 + (w0 - new_w) // 2
@@ -178,8 +196,11 @@ class Model:
         h, w = self.image.shape[:2]
         
         self.zoom_factor = w / w0
-        center_x = x0 + w0 // 2 #current center x
-        center_y = y0 + h0 // 2 #current center y
+        center_x = x0 + w0 // 2
+        center_y = y0 + h0 // 2
+
+        if self.zoom_factor == 1:
+            return
 
         while self.zoom_factor > 1:
             self.zoom_factor -= 0.05
@@ -201,6 +222,51 @@ class Model:
             cv.imshow("Display window", zoomed_image)
             cv.waitKey(30)
         self.current_zoom = (x1, y1, x2 - x1, y2 - y1)
+
+
+    def cell_segmentation(self):
+        
+        self.image = self.original_image.copy()
+
+        model = models.CellposeModel(gpu=True)
+        masks, flows, styles = model.eval(self.image, diameter=30)
+
+        image_BGR = self.image.copy()
+
+        binary_mask = (masks > 0).astype(np.uint8)
+
+        overlay_color = tuple(int(c) for c in self.color)
+
+        alpha = 0.5
+
+        # For each channel, blend overlay_color onto image where mask is 1
+        for c in range(3):
+            image_BGR[:, :, c] = np.where(
+                binary_mask == 1,
+                (alpha * overlay_color[c] + (1 - alpha) * image_BGR[:, :, c]).astype(np.uint8),
+                image_BGR[:, :, c]
+            )
+
+        self.image = image_BGR
+
+        cv.imshow("Display window", self.image)
+
+    def quit(self):
+        self.end = True
+
+    """ TBD
+
+    Available move positions:
+        - up 
+        - down
+        - left
+        - right
+
+    - move: move current zoom
+
+    User: "please move to the left"
+    Okay! moving the zoom to the left.
+    move left
 
     def move(self):
         h, w = self.image.shape[:2]
@@ -232,16 +298,15 @@ class Model:
         cv.imshow("Display window", moved_image)
         cv.waitKey(30)
         self.current_zoom = (x1, y1, w0, h0)
-
-model = Model()
-
+    """
+model = Model("./images/image1.png")
 cv.imshow("Display window", model.image)
 cv.waitKey(1)
 
-while True:
+while model.end != True:
     with sr.Microphone() as source:
         print("You can talk now") 
-        audio_data = model.speech.listen(source)
+        audio_data = model.speech.listen(source, phrase_time_limit=10, timeout=10)
         try:
             model.process_speech_input(audio_data)
         except sr.UnknownValueError:
