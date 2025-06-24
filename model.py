@@ -21,8 +21,10 @@ class Model:
         self.response_text = ""
         self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
         self.zoom_factor = 1
+        self.brightness = 50
+        self.brightness_level = 0
         self.command = None
-        self.color = [0, 0, 255]
+        self.color = [0, 0, 255] #red initially
         self.move_position = None
         self.zoom_position = 'center'
         self.user_input = ""
@@ -41,7 +43,10 @@ class Model:
             - zoom_out: Zoom out the current view.
             - cell_segmentation: Color every cell.
             - quit: Close everything and say goodbye.
+            - lighting_modification: Modify the brightness
             - none: Do nothing or no known command recognized.
+
+            IF you dont recognize a command respond the command none!
 
             Available zoom positions:
             - center (default)
@@ -57,6 +62,10 @@ class Model:
             yellow: 0 255 255
             white: 255 255 255
             black: 0 0 0
+
+            Available brigthness:
+            50
+            -50
 
             Output format MUST be exactly:
             [Response to user text]
@@ -82,11 +91,19 @@ class Model:
             Response: Okay! Zooming out.
             zoom_out
 
+            User: "please brighten the image"
+            Response: Sure! Making the image brighter.
+            lighting_modification 50
+
+            User: "please darken the image"
+            Response: Sure! Making the image darker.
+            lighting_modification -50
+
             User: "how's the weather?"
             Response: Sorry, I can only help with software commands.
             none
 
-            User: "stop"
+            User: "quit"
             Response: Thank you for using our software! Have a nice day.
             quit
 
@@ -104,6 +121,7 @@ class Model:
             "zoom_in": self.zoom_in,
             "zoom_out": self.zoom_out,
             "cell_segmentation": self.cell_segmentation,
+            "lighting_modification": self.lighting_modification,
             "quit": self.quit
         }
 
@@ -145,6 +163,8 @@ class Model:
                         self.command, self.zoom_position = parts[0], parts[1]
                     #elif parts[1] in ['up', 'down', 'left', 'right']:
                         #self.command, self.move_position = parts[0], parts[1]
+                    elif parts[1] in ['50', '-50']:
+                        self.command, self.brightness = parts[0], int(parts[1])
                 elif len(parts) == 4: #colors
                     self.command, self.color = parts[0], parts[1:]
                 else:
@@ -226,7 +246,7 @@ class Model:
 
     def cell_segmentation(self):
         
-        self.image = self.original_image.copy()
+        #self.image = self.original_image.copy()
 
         model = models.CellposeModel(gpu=True)
         masks, flows, styles = model.eval(self.image, diameter=30)
@@ -239,7 +259,7 @@ class Model:
 
         alpha = 0.5
 
-        # For each channel, blend overlay_color onto image where mask is 1
+        # For each channel, blend overlay_color onto image where mask is 1 (Chatgpt)
         for c in range(3):
             image_BGR[:, :, c] = np.where(
                 binary_mask == 1,
@@ -248,6 +268,14 @@ class Model:
             )
 
         self.image = image_BGR
+        cv.imshow("Display window", self.image)
+
+    def lighting_modification(self):
+        temp_img = self.original_image.copy()
+        
+        self.brightness_level += self.brightness
+
+        self.image = cv.convertScaleAbs(temp_img, beta=self.brightness_level, alpha=1.0)
 
         cv.imshow("Display window", self.image)
 
