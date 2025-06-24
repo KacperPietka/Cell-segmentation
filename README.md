@@ -1,5 +1,5 @@
 # Cell-segmentation
-Fully voice-controlled software which enables you to zoom in, zoom out, color cells and analize an image!
+Fully voice-controlled software which enables you to zoom in, zoom out, color cells using Cellpose and analize an image!
 Example:
 You say "Please color every cell in red"
 # Before:
