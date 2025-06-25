@@ -1,5 +1,12 @@
 # Interactive Cell Segmentation Software
 Fully voice-controlled software which enables you to zoom in, zoom out, color cells using Cellpose and analize an image!
+Available commands:
+- zoom_in: Zooms in the current view.
+- zoom_out: Zooms out the current view.
+- cell_segmentation: Colors every cell.
+- quit: Closes everything.
+- lighting_modification: Modifies the brightness.
+- none: Does nothing.
 Example:
 You say "Please color every cell in red"
 # Before:
