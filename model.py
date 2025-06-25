@@ -125,6 +125,7 @@ class Model:
             "quit": self.quit
         }
 
+
     def speak(self, text, lang='en', tld='com'):
         tts = gTTS(text=text, lang=lang, tld=tld)
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
@@ -246,7 +247,7 @@ class Model:
 
     def cell_segmentation(self):
         
-        #self.image = self.original_image.copy()
+        self.image = self.original_image.copy()
 
         model = models.CellposeModel(gpu=True)
         masks, flows, styles = model.eval(self.image, diameter=30)
@@ -268,6 +269,7 @@ class Model:
             )
 
         self.image = image_BGR
+        self.image = cv.convertScaleAbs(self.image, beta=self.brightness_level, alpha=1.0)
         cv.imshow("Display window", self.image)
 
     def lighting_modification(self):
