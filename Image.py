@@ -1,5 +1,6 @@
 from Variables import Variables
 import cv2 as cv
+
 class Image:
     def __init__(self, image_path):
         img = cv.imread(image_path)

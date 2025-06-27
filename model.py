@@ -38,6 +38,7 @@ class Model(Image):
             - cell_segmentation: Color every cell.
             - quit: Close everything and say goodbye.
             - lighting_modification: Modify the brightness
+            - undo_all: Undo everything
             - none: Do nothing or no known command recognized.
 
             IF you dont recognize a command respond the command none!
@@ -97,6 +98,10 @@ class Model(Image):
             Response: Sorry, I can only help with software commands.
             none
 
+            User: "undo everything"
+            Response: Sure! Eveyrthing goes back to the original
+            undo_all
+
             User: "quit"
             Response: Thank you for using our software! Have a nice day.
             quit
@@ -116,7 +121,8 @@ class Model(Image):
             "zoom_out": self.zoom_out,
             "cell_segmentation": self.cell_segmentation,
             "lighting_modification": self.lighting_modification,
-            "quit": self.quit
+            "quit": self.quit,
+            "undo_all": self.undo_all
         }
 
 
@@ -152,7 +158,7 @@ class Model(Image):
             self.speak(lines[0], lang='en', tld='co.uk')
             if lines:
                 parts = lines[-1].strip().split()
-                print(parts)
+                #print(parts)
                 if len(parts) == 2:
                     if parts[1] in ['top_right', 'top_left', 'bottom_left', 'bottom_right', 'center']:
                         self.command, self.zoom_position = parts[0], parts[1]
@@ -169,6 +175,26 @@ class Model(Image):
         else:
             print("Error")
 
+
+    def reset_variables(self):
+        self.url = 'http://localhost:11434/api/chat'
+        self.speech = sr.Recognizer()
+        self.response_text = ""
+        self.command = None
+        self.color = Variables.RED_BGR
+        self.user_input = ""
+        self.end = False
+        self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
+        self.zoom_factor = Variables.ORIGINAL_ZOOM_FACTOR
+        self.brightness = Variables.BRIGHTNESS_STEP
+        self.brightness_level = Variables.DEFAULT_BRIGHTNESS_LEVEL
+        self.zoom_position = Variables.DEFAULT_ZOOM_POSITION
+    
+
+    def undo_all(self):
+        self.image = self.original_image
+        self.reset_variables()
+        cv.imshow("Display window", self.image)
 
 
     def cell_segmentation(self):

@@ -6,9 +6,10 @@ Available commands:
 - cell_segmentation: Colors every cell.
 - quit: Closes everything.
 - lighting_modification: Modifies the brightness.
-- none: Does nothing.
-Example:
-You say "Please color every cell in red"
+- undo_all: Everything goes back to original
+- none: Does nothing.<br/>
+Example:<br/>
+"Please color every cell in red"<br/>
 # Before:
 ![alt text](image.png)
 # After:
