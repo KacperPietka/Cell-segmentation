@@ -4,6 +4,7 @@ import speech_recognition as sr
 from gtts import gTTS
 import playsound
 import os
+import re
 import tempfile
 import cv2 as cv
 import numpy as np
@@ -36,6 +37,7 @@ class Model(Image):
             - zoom_in: Zoom in the current view.
             - zoom_out: Zoom out the current view.
             - cell_segmentation: Color every cell.
+            - change_image: Changes image to a different one.
             - quit: Close everything and say goodbye.
             - lighting_modification: Modify the brightness
             - undo_all: Undo everything
@@ -64,7 +66,7 @@ class Model(Image):
 
             Output format MUST be exactly:
             [Response to user text]
-            [command_name] [position (optional) OR color (optional)]
+            [command_name] [position (optional) OR color (optional) OR image]
             
             User: "please zoom in top left"
             Response: Okay! Zooming in top left.
@@ -81,6 +83,14 @@ class Model(Image):
             User: "Recolor every cell in red"
             Response: recoloring cell segmentation in red...
             cell_segmentation 0 0 255
+
+            User: "Change the image to image 1"
+            Response: Loading image 1
+            change_image image1
+
+            User: "Change the image to image two"
+            Response: Loading image 10
+            change_image image10
             
             User: "please zoom out"
             Response: Okay! Zooming out.
@@ -108,7 +118,8 @@ class Model(Image):
 
             IMPORTANT:  
             - The LAST line must contain ONLY the command and optional position or optional color, nothing else.  
-            - Do NOT output any extra blank lines or trailing spaces after the command line."""
+            - Do NOT output any extra blank lines or trailing spaces after the command line.
+            - IF you don't know the command respond naturally and return command none!"""
         },
         {
             "role": "user",
@@ -122,7 +133,8 @@ class Model(Image):
             "cell_segmentation": self.cell_segmentation,
             "lighting_modification": self.lighting_modification,
             "quit": self.quit,
-            "undo_all": self.undo_all
+            "undo_all": self.undo_all,
+            "change_image": self.change_image
         }
 
 
@@ -164,6 +176,9 @@ class Model(Image):
                         self.command, self.zoom_position = parts[0], parts[1]
                     #elif parts[1] in ['up', 'down', 'left', 'right']:
                         #self.command, self.move_position = parts[0], parts[1]
+                    elif re.search("image", parts[1]):
+                        self.reset_variables()
+                        self.command, self.image_path = parts[0], './images/' + parts[1] + '.png'
                     elif parts[1] in ['50', '-50']:
                         self.command, self.brightness = parts[0], int(parts[1])
                 elif len(parts) == 4: #colors
@@ -198,7 +213,7 @@ class Model(Image):
 
 
     def cell_segmentation(self):
-        
+        self.reset_variables()
         self.image = self.original_image.copy()
 
         model = models.CellposeModel(gpu=True)

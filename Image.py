@@ -3,7 +3,8 @@ import cv2 as cv
 
 class Image:
     def __init__(self, image_path):
-        img = cv.imread(image_path)
+        self.image_path = image_path
+        img = cv.imread(self.image_path)
         self.image = cv.resize(img, Variables.IMAGE_SIZE)
         self.original_image = self.image.copy()
         self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
@@ -48,6 +49,17 @@ class Image:
             cv.waitKey(30)
         self.current_zoom = (x1, y1, x2 - x1, y2 - y1)
 
+    def change_image(self):
+        
+        img = cv.imread(self.image_path)
+        self.image = cv.resize(img, Variables.IMAGE_SIZE)
+        self.original_image = self.image.copy()
+        self.current_zoom = (0, 0, self.image.shape[1], self.image.shape[0])
+        self.zoom_factor = Variables.ORIGINAL_ZOOM_FACTOR
+        self.brightness = Variables.BRIGHTNESS_STEP
+        self.brightness_level = Variables.DEFAULT_BRIGHTNESS_LEVEL
+        self.zoom_position = Variables.DEFAULT_ZOOM_POSITION
+        cv.imshow("Display window", self.image)
 
     def zoom_out(self):
         x0,y0,w0,h0 = self.current_zoom

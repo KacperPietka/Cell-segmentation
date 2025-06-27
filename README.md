@@ -5,6 +5,7 @@ Available commands:
 - zoom_out: Zooms out the current view.
 - cell_segmentation: Colors every cell.
 - quit: Closes everything.
+- change_image: Changes image to a different one.
 - lighting_modification: Modifies the brightness.
 - undo_all: Everything goes back to original
 - none: Does nothing.<br/>
