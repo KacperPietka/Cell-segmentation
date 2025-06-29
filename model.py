@@ -17,7 +17,7 @@ import model_instruction
 class Model(Image):
     def __init__(self, image_path):
         super().__init__(image_path)
-        self.url = 'http://localhost:11434/api/chat'
+        self.url = Variables.URL
         self.speech = sr.Recognizer()
         self.response_text = ""
         self.command = None
@@ -212,6 +212,6 @@ while model.end != True:
             print("Sorry, I could not understand your voice.")
         except sr.RequestError as e:
             print(f"Speech recognition error: {e}") 
-    if cv.waitKey(1) & 0xFF == 27:
+    if cv.waitKey(1) & 0xFF == 27: #press any key to end
         break
 cv.destroyAllWindows()

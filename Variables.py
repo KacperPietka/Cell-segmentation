@@ -9,3 +9,4 @@ class Variables:
     DEFAULT_BRIGHTNESS_LEVEL = 0
     ZOOM_THRESHOLD = 1.5
     RED_BGR = [0, 0, 255]
+    URL = 'http://localhost:11434/api/chat'
