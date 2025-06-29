@@ -9,7 +9,6 @@ import tempfile
 import cv2 as cv
 import numpy as np
 from cellpose import models
-from cellpose.io import imread
 from Variables import Variables
 from Image import Image
 import model_instruction
